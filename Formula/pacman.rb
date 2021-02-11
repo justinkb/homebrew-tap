@@ -4,6 +4,7 @@ class Pacman < Formula
   url "https://sources.archlinux.org/other/pacman/pacman-5.2.2.tar.gz"
   sha256 "bb201a9f2fb53c28d011f661d50028efce6eef2c1d2a36728bdd0130189349a0"
   license "GPL-2.0"
+  revision 1
 
   depends_on "pkg-config" => :build
   depends_on "bash"
@@ -122,4 +123,59 @@ index 46e6481f..38b70e46 100644
  #include <alpm.h>
 -- 
 2.30.0
+
+From 88d054093c1c99a697d95b26bd9aad5bc4d8e170 Mon Sep 17 00:00:00 2001
+From: Eli Schwartz <eschwartz@archlinux.org>
+Date: Sun, 7 Feb 2021 23:09:42 -0500
+Subject: makepkg: don't let the strip routine mess up file attributes
+
+It updates the stripped/objcopied file by creating a temp file,
+chown/chmodding it, and replacing the original file. But upstream
+binutils has CVE-worthy issues with this if running strip as root, and
+some recent versions of strip don't play nicely with fakeroot.
+
+Also, this has always destroyed xattrs. :/
+
+Sidestep the issue by telling strip/objcopy to write to a temporary
+file, and manually dump the contents of that back into the original
+binary. Since the original binary is intact, albeit with different
+contents, it retains its correct attributes in fakeroot.
+
+Signed-off-by: Eli Schwartz <eschwartz@archlinux.org>
+Signed-off-by: Allan McRae <allan@archlinux.org>
+---
+ scripts/libmakepkg/tidy/strip.sh.in | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/libmakepkg/tidy/strip.sh.in b/scripts/libmakepkg/tidy/strip.sh.in
+index 868b96f3..9cb0fd8d 100644
+--- a/scripts/libmakepkg/tidy/strip.sh.in
++++ b/scripts/libmakepkg/tidy/strip.sh.in
+@@ -69,7 +69,10 @@ strip_file() {
+ 		# copy debug symbols to debug directory
+ 		mkdir -p "$dbgdir/${binary%/*}"
+ 		objcopy --only-keep-debug "$binary" "$dbgdir/$binary.debug"
+-		objcopy --add-gnu-debuglink="$dbgdir/${binary#/}.debug" "$binary"
++		local tempfile=$(mktemp "$binary.XXXXXX")
++		objcopy --add-gnu-debuglink="$dbgdir/${binary#/}.debug" "$binary" "$tempfile"
++		cat "$tempfile" > "$binary"
++		rm "$tempfile"
+ 
+ 		# create any needed hardlinks
+ 		while IFS= read -rd '' file ; do
+@@ -93,7 +96,11 @@ strip_file() {
+ 		fi
+ 	fi
+ 
+-	strip $@ "$binary"
++	local tempfile=$(mktemp "$binary.XXXXXX")
++	if strip "$@" "$binary" -o "$tempfile"; then
++		cat "$tempfile" > "$binary"
++	fi
++	rm -f "$tempfile"
+ }
+ 
+ 
+-- 
+cgit v1.2.3-1-gf6bb5
 
