@@ -1,8 +1,8 @@
 class Libjaylink < Formula
   desc "Library to access SEGGER J-Link and compatible devices"
   homepage "https://gitlab.zapb.de/libjaylink/libjaylink.git"
-  url "https://gitlab.zapb.de/libjaylink/libjaylink/-/archive/0.2.0/libjaylink-0.2.0.tar.gz"
-  sha256 "ac10d03088a2f28ebfc0411f9e617433936220dc183050f2e429694dcadc4f2a"
+  url "https://gitlab.zapb.de/libjaylink/libjaylink/-/archive/0.3.1/libjaylink-0.3.1.tar.gz"
+  sha256 "a2d98c1aa13dcf41c6c681767a43cdefc42b6f71af9362937555051007514cd9"
   license "GPL-2.0-or-later"
   head "https://gitlab.zapb.de/libjaylink/libjaylink.git", branch: "master"
 
